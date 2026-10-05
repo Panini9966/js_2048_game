@@ -58,7 +58,19 @@ class Game {
     });
   }
 
+  updateStatus() {
+    if (this.checkForWin() === 'win') {
+      return;
+    }
+
+    this.checkForLose();
+  }
+
   moveLeft() {
+    if (this.status !== 'playing') {
+      return;
+    }
+
     const previousState = this.state.map((row) => [...row]);
 
     for (let i = 0; i < this.state.length; i++) {
@@ -87,8 +99,14 @@ class Game {
     if (this.hasStateChanged(previousState)) {
       this.randomizer();
     }
+
+    this.updateStatus();
   }
   moveRight() {
+    if (this.status !== 'playing') {
+      return;
+    }
+
     const previousState = this.state.map((row) => [...row]);
 
     for (let i = 0; i < this.state.length; i++) {
@@ -119,8 +137,14 @@ class Game {
     if (this.hasStateChanged(previousState)) {
       this.randomizer();
     }
+
+    this.updateStatus();
   }
   moveDown() {
+    if (this.status !== 'playing') {
+      return;
+    }
+
     const previousState = this.state.map((row) => [...row]);
 
     for (let column = 0; column < this.state[0].length; column++) {
@@ -158,8 +182,14 @@ class Game {
     if (this.hasStateChanged(previousState)) {
       this.randomizer();
     }
+
+    this.updateStatus();
   }
   moveUp() {
+    if (this.status !== 'playing') {
+      return;
+    }
+
     const previousState = this.state.map((row) => [...row]);
 
     for (let column = 0; column < this.state[0].length; column++) {
@@ -196,6 +226,8 @@ class Game {
     if (this.hasStateChanged(previousState)) {
       this.randomizer();
     }
+
+    this.updateStatus();
   }
 
   /**
@@ -254,6 +286,8 @@ class Game {
     for (let row = 0; row < this.state.length; row++) {
       for (let column = 0; column < this.state[row].length; column++) {
         if (this.state[row][column] >= 2048) {
+          this.status = 'win';
+
           return 'win';
         }
       }
@@ -261,6 +295,10 @@ class Game {
   }
 
   checkForLose() {
+    if (this.status === 'win') {
+      return;
+    }
+
     for (let row = 0; row < this.state.length; row++) {
       for (let column = 0; column < this.state[row].length; column++) {
         const value = this.state[row][column];
@@ -284,6 +322,7 @@ class Game {
         }
       }
     }
+    this.status = 'lose';
 
     return 'lose';
   }
