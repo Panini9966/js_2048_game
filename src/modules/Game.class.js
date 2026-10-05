@@ -1,178 +1,291 @@
 'use strict';
 
 class Game {
+  /**
+   *
+   *
+   * @param {number[][]} initialState
+   * The initial state of the board.
+   * @default
+   * [[0, 0, 0, 0],
+   *  [0, 0, 0, 0],
+   *  [0, 0, 0, 0],
+   *  [0, 0, 0, 0]]
+   *
+   * If passed, the board will be initialized with the provided
+   * initial state.
+   */
   constructor(initialState) {
-    this.initialState = (
-      initialState ?? Array.from({ length: 4 }, () => [0, 0, 0, 0])
-    ).map((stateRow) => [...stateRow]);
-    this.state = this.copyState(this.initialState);
+    if (initialState) {
+      this.state = initialState;
+    } else {
+      this.state = [
+        [0, 0, 0, 0],
+        [0, 0, 0, 0],
+        [0, 0, 0, 0],
+        [0, 0, 0, 0],
+      ];
+    }
+
     this.score = 0;
     this.status = 'idle';
   }
 
-  copyState(state) {
-    return state.map((stateRow) => [...stateRow]);
-  }
-
-  addRandomTile() {
+  randomizer() {
     const emptyCells = [];
 
-    this.state.forEach((currentRow, rowIndex) => {
-      currentRow.forEach((value, columnIndex) => {
-        if (value === 0) {
-          emptyCells.push([rowIndex, columnIndex]);
+    for (let row = 0; row < this.state.length; row++) {
+      for (let column = 0; column < this.state[row].length; column++) {
+        if (this.state[row][column] === 0) {
+          emptyCells.push([row, column]);
         }
+      }
+    }
+
+    if (emptyCells.length > 0) {
+      const randomIndex = Math.floor(Math.random() * emptyCells.length);
+      const [row, column] = emptyCells[randomIndex];
+
+      this.state[row][column] = Math.random() < 0.1 ? 4 : 2;
+    }
+  }
+
+  hasStateChanged(previousState) {
+    return this.state.some((row, rowIndex) => {
+      return row.some((value, columnIndex) => {
+        return value !== previousState[rowIndex][columnIndex];
       });
     });
-
-    if (emptyCells.length === 0) {
-      return;
-    }
-
-    const [row, column] =
-      emptyCells[Math.floor(Math.random() * emptyCells.length)];
-
-    this.state[row][column] = Math.random() < 0.1 ? 4 : 2;
-  }
-
-  mergeLine(line) {
-    const values = line.filter((value) => value !== 0);
-    const merged = [];
-
-    for (let index = 0; index < values.length; index++) {
-      if (values[index] === values[index + 1]) {
-        const value = values[index] * 2;
-
-        merged.push(value);
-        this.score += value;
-        index++;
-      } else {
-        merged.push(values[index]);
-      }
-    }
-
-    while (merged.length < 4) {
-      merged.push(0);
-    }
-
-    return merged;
-  }
-
-  move(direction) {
-    if (this.status !== 'playing') {
-      return false;
-    }
-
-    const previousState = JSON.stringify(this.state);
-    const reversed = direction === 'right' || direction === 'down';
-    const vertical = direction === 'up' || direction === 'down';
-
-    for (let lineIndex = 0; lineIndex < 4; lineIndex++) {
-      const line = [];
-
-      for (let position = 0; position < 4; position++) {
-        const row = vertical ? position : lineIndex;
-        const column = vertical ? lineIndex : position;
-
-        line.push(this.state[row][column]);
-      }
-
-      if (reversed) {
-        line.reverse();
-      }
-
-      const result = this.mergeLine(line);
-
-      if (reversed) {
-        result.reverse();
-      }
-
-      for (let position = 0; position < 4; position++) {
-        const row = vertical ? position : lineIndex;
-        const column = vertical ? lineIndex : position;
-
-        this.state[row][column] = result[position];
-      }
-    }
-
-    if (previousState === JSON.stringify(this.state)) {
-      return false;
-    }
-
-    this.addRandomTile();
-    this.updateStatus();
-
-    return true;
   }
 
   moveLeft() {
-    return this.move('left');
-  }
+    const previousState = this.state.map((row) => [...row]);
 
+    for (let i = 0; i < this.state.length; i++) {
+      const row = this.state[i];
+      const numbers = row.filter((number) => number !== 0);
+      const results = [];
+
+      for (let v = 0; v < numbers.length; v++) {
+        if (numbers[v] === numbers[v + 1]) {
+          const value = numbers[v] * 2;
+
+          results.push(value);
+          this.score += value;
+          v++;
+        } else {
+          results.push(numbers[v]);
+        }
+      }
+
+      while (results.length < row.length) {
+        results.push(0);
+      }
+      row.splice(0, 4, ...results);
+    }
+
+    if (this.hasStateChanged(previousState)) {
+      this.randomizer();
+    }
+  }
   moveRight() {
-    return this.move('right');
-  }
+    const previousState = this.state.map((row) => [...row]);
 
-  moveUp() {
-    return this.move('up');
-  }
+    for (let i = 0; i < this.state.length; i++) {
+      const row = this.state[i];
+      const numbers = row.filter((number) => number !== 0).reverse();
 
+      const results = [];
+
+      for (let v = 0; v < numbers.length; v++) {
+        if (numbers[v] === numbers[v + 1]) {
+          const value = numbers[v] * 2;
+
+          results.push(value);
+          this.score += value;
+          v++;
+        } else {
+          results.push(numbers[v]);
+        }
+      }
+
+      while (results.length < row.length) {
+        results.push(0);
+      }
+      results.reverse();
+      row.splice(0, 4, ...results);
+    }
+
+    if (this.hasStateChanged(previousState)) {
+      this.randomizer();
+    }
+  }
   moveDown() {
-    return this.move('down');
+    const previousState = this.state.map((row) => [...row]);
+
+    for (let column = 0; column < this.state[0].length; column++) {
+      const columnValue = [];
+
+      for (let row = 0; row < this.state.length; row++) {
+        columnValue.push(this.state[row][column]);
+      }
+
+      const numbers = columnValue.filter((number) => number !== 0).reverse();
+      const results = [];
+
+      for (let i = 0; i < numbers.length; i++) {
+        if (numbers[i] === numbers[i + 1]) {
+          const value = numbers[i] * 2;
+
+          results.push(value);
+          this.score += value;
+          i++;
+        } else {
+          results.push(numbers[i]);
+        }
+      }
+
+      while (results.length < this.state.length) {
+        results.push(0);
+      }
+      results.reverse();
+
+      for (let row = 0; row < this.state.length; row++) {
+        this.state[row][column] = results[row];
+      }
+    }
+
+    if (this.hasStateChanged(previousState)) {
+      this.randomizer();
+    }
+  }
+  moveUp() {
+    const previousState = this.state.map((row) => [...row]);
+
+    for (let column = 0; column < this.state[0].length; column++) {
+      const columnValue = [];
+
+      for (let row = 0; row < this.state.length; row++) {
+        columnValue.push(this.state[row][column]);
+      }
+
+      const numbers = columnValue.filter((number) => number !== 0);
+      const results = [];
+
+      for (let i = 0; i < numbers.length; i++) {
+        if (numbers[i] === numbers[i + 1]) {
+          const value = numbers[i] * 2;
+
+          results.push(value);
+          this.score += value;
+          i++;
+        } else {
+          results.push(numbers[i]);
+        }
+      }
+
+      while (results.length < this.state.length) {
+        results.push(0);
+      }
+
+      for (let row = 0; row < this.state.length; row++) {
+        this.state[row][column] = results[row];
+      }
+    }
+
+    if (this.hasStateChanged(previousState)) {
+      this.randomizer();
+    }
   }
 
+  /**
+   * @returns {number}
+   */
   getScore() {
     return this.score;
   }
 
+  /**
+   * @returns {number[][]}
+   */
   getState() {
     return this.state;
   }
 
+  /**
+   * Returns the current game status.
+   *
+   * @returns {string} One of: 'idle', 'playing', 'win', 'lose'
+   *
+   * idle - the game has not started yet (the initial state);
+   * playing - the game is in progress;
+   * win - the game is won;
+   * lose - the game is lost
+   */
   getStatus() {
     return this.status;
   }
 
-  updateStatus() {
-    if (this.state.flat().some((value) => value >= 2048)) {
-      this.status = 'win';
+  /**
+   * Starts the game.
+   */
+  start() {
+    this.status = 'playing';
+    this.randomizer();
+    this.randomizer();
+  }
 
-      return;
+  /**
+   * Resets the game.
+   */
+  restart() {
+    this.status = 'idle';
+    this.score = 0;
+
+    this.state = [
+      [0, 0, 0, 0],
+      [0, 0, 0, 0],
+      [0, 0, 0, 0],
+      [0, 0, 0, 0],
+    ];
+  }
+
+  checkForWin() {
+    for (let row = 0; row < this.state.length; row++) {
+      for (let column = 0; column < this.state[row].length; column++) {
+        if (this.state[row][column] >= 2048) {
+          return 'win';
+        }
+      }
     }
+  }
 
-    const hasEmptyCell = this.state.flat().some((value) => value === 0);
-    let hasMerge = false;
-
-    for (let row = 0; row < 4 && !hasMerge; row++) {
-      for (let column = 0; column < 4 && !hasMerge; column++) {
+  checkForLose() {
+    for (let row = 0; row < this.state.length; row++) {
+      for (let column = 0; column < this.state[row].length; column++) {
         const value = this.state[row][column];
 
-        hasMerge =
-          value !== 0 &&
-          (value === this.state[row][column + 1] ||
-            value === this.state[row + 1]?.[column]);
+        if (value === 0) {
+          return;
+        }
+
+        if (
+          column < this.state[row].length - 1 &&
+          value === this.state[row][column + 1]
+        ) {
+          return;
+        }
+
+        if (
+          row < this.state.length - 1 &&
+          value === this.state[row + 1][column]
+        ) {
+          return;
+        }
       }
     }
 
-    this.status = hasEmptyCell || hasMerge ? 'playing' : 'lose';
-  }
-
-  start() {
-    if (this.status !== 'idle') {
-      return;
-    }
-
-    this.addRandomTile();
-    this.addRandomTile();
-    this.status = 'playing';
-    this.updateStatus();
-  }
-
-  restart() {
-    this.state = this.copyState(this.initialState);
-    this.score = 0;
-    this.status = 'idle';
+    return 'lose';
   }
 }
-
 module.exports = Game;
