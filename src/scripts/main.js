@@ -70,11 +70,9 @@ buttonStart.addEventListener('click', () => {
     isStarted = true;
   } else {
     game.restart();
+    loseMessage.classList.add('hidden');
     play();
-    buttonStart.classList.remove('restart');
     startMessage.classList.remove('hidden');
-    buttonStart.classList.add('start');
-    buttonStart.textContent = 'Start';
     isStarted = false;
   }
 
